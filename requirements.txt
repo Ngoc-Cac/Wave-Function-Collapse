@@ -1,0 +1,13 @@
+# Computer Vision and Image Processing libraries
+opencv-python >= 4.11
+
+# Mathematic and Numerical processing libraries
+numpy >= 2.1
+scipy >= 1.15
+
+# Visualisation libraries
+matplotlib >= 3.10
+
+# Optional for interactive python notebook
+ipython [security] >= 8.32
+PyQt6 [security] >= 6.8
