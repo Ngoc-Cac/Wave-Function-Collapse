@@ -1,29 +1,29 @@
 import random as rand
 import numpy as np
 
-from wfc.cell_image import Direction, CellImage
+from wfc.cell_image import Cell, Direction, TileImage
 
 from typing import Callable, Literal, Optional
 
 
-def concat_grid(tiles_grid: list[CellImage],
+def concat_grid(tiles_grid: list[Cell],
                 tiles_shape: tuple[int, int, Literal[3]],
                 dimension: tuple[int, int]) -> np.ndarray:
     """
-    Concatenate a grid of CellImage objects into a single image.
+    Concatenate a grid of Cell objects into a single image.
 
-    This asumes that every CellImage has a superposition state, else its\
+    This asumes that every Cell has a superposition state, else its\
         image representation will be filled with black.
 
     ## Parameters:
-        tiles_grid: list of CellImage objects to concatenate
-        tiles_shape: the dimension of a CellImage
+        tiles_grid: list of Cell objects to concatenate
+        tiles_shape: the dimension of a Cell
         dimension: dimension of the final image after concatenation
 
     ## Return
     A `numpy.ndarray` of shape `(int, int, 3)`
     """
-    failure_cell = np.zeros(tiles_shape, dtype=int)
+    failure_cell = np.zeros(tiles_shape, dtype='uint8')
     row_pixels = []
     for i in range(dimension[0]):
         row = i * dimension[1]
@@ -34,7 +34,7 @@ def concat_grid(tiles_grid: list[CellImage],
 
 def _propogate(position: int,
                output_dimension: tuple[int, int],
-               generated_img: list[CellImage]) -> bool:
+               generated_img: list[Cell]) -> bool:
     """
     Propogate a wave from a position
     """
@@ -81,7 +81,7 @@ def _propogate(position: int,
     return all(cell.is_valid for cell in generated_img)
 
 def wave_function_collapse(
-        patterns: list[np.ndarray],
+        patterns: list[TileImage],
         output_dimension: tuple[int, int], *,
         repeat_until_success: bool = True,
         collapse_update_func: Optional[Callable[[np.ndarray], None]] = None
@@ -94,14 +94,14 @@ def wave_function_collapse(
     """
     success = False
     while not success:
-        matrix: list[CellImage] = [CellImage(patterns) for _ in range(output_dimension[0] * output_dimension[1])]
+        matrix: list[Cell] = [Cell(patterns) for _ in range(output_dimension[0] * output_dimension[1])]
         min_index = rand.randint(0, output_dimension[0] * output_dimension[1] - 1)
         matrix[min_index].collapse()
         _propogate(min_index, output_dimension, matrix)
 
         while not all(cell.is_collapsed for cell in matrix):
             if collapse_update_func:
-                collapse_update_func(concat_grid(matrix, patterns[0].shape, output_dimension))
+                collapse_update_func(concat_grid(matrix, patterns[0].image.shape, output_dimension))
 
             min_index, _ = min([(i, cell.entropy) for i, cell in enumerate(matrix) if not cell.is_collapsed],
                                key=lambda tup: tup[1])
@@ -109,8 +109,8 @@ def wave_function_collapse(
             if not _propogate(min_index, output_dimension, matrix): break
 
         if collapse_update_func:
-            collapse_update_func(concat_grid(matrix, patterns[0].shape, output_dimension))
+            collapse_update_func(concat_grid(matrix, patterns[0].image.shape, output_dimension))
 
         success = all(cell.is_collapsed for cell in matrix)
         if not repeat_until_success: break
-    return success, concat_grid(matrix, patterns[0].shape, output_dimension)
+    return success, concat_grid(matrix, patterns[0].image.shape, output_dimension)
