@@ -11,46 +11,71 @@ class Direction(Enum):
     LEFT = 'left'
     RIGHT = 'right'
 
-class CellImage:
-    __slots__ = '_collapsed', '_img', '_options', '_recur_depth'
-    def __init__(self, patterns: Iterable[np.ndarray]):
+class TileImage:
+    __slots__ = '_pattern', '_frequency'
+    def __init__(self, pattern: np.ndarray, frequency: int):
+        self._pattern = pattern
+        self._frequency = frequency
+
+    @property
+    def frequency(self) -> int:
+        return self._frequency
+    @property
+    def image(self) -> np.ndarray:
+        return self._pattern
+    
+    def is_adjacent_to(self, tile: 'TileImage', direction: Direction) -> bool:
+        """
+        Can this tile be adjacent in the `direction` to `tile`
+        """
+        match direction:
+            case Direction.UP:
+                result = (self._pattern[-1] == tile._pattern[0]).all()
+            case Direction.DOWN:
+                result = (self._pattern[0] == tile._pattern[-1]).all()
+            case Direction.LEFT:
+                result = (self._pattern[:, -1] == tile._pattern[:, 0]).all()
+            case Direction.RIGHT:
+                result = (self._pattern[:, 0] == tile._pattern[:, -1]).all()
+            case _:
+                raise ValueError("Weird direction passed")
+        return result
+
+class Cell:
+    __slots__ = '_collapsed', '_options'
+    def __init__(self, patterns: Iterable[TileImage]):
         self._options = list(patterns)
         self._collapsed = False
-        self._img = None
 
     @property
     def entropy(self) -> float:
+        """
+        entropy = log(total_count) - sigma weight_i * log(weight_i)
+        """
         if not len(self._options): return np.inf
-        return -np.log2(1 / len(self._options))
+
+        total = sum(tile.frequency for tile in self._options)
+        return np.log2(total) - sum(tile.frequency * np.log2(tile.frequency) for tile in self._options) / total
     @property
     def image(self) -> Optional[np.ndarray]:
         if not len(self._options): return None
-        elif self._img is None:
-            image = np.ndarray(self._options[0].shape)
+        elif self._collapsed: return self._options[0].image
+        else:
+            image = np.ndarray(self._options[0].image.shape)
             image[:] = np.mean(np.mean(self._options, axis=0), axis=(0, 1))
-            return image.astype(int)
-        else: return self._img
+            return image.astype('uint8')
     @property
-    def is_collapsed(self) -> bool:
-        return self._collapsed
+    def is_collapsed(self) -> bool: return self._collapsed
     @property
-    def is_valid(self) -> bool:
-        return bool(len(self._options))
+    def is_valid(self) -> bool: return bool(len(self._options))
 
-    def update_options(self, cell_image: 'CellImage', direction: Direction) -> bool:
+    def update_options(self, cell_image: 'Cell', direction: Direction) -> bool:
         new_options = []
         for option in self._options:
-            overlap_able = False
             for other_opt in cell_image._options:
-                if (
-                    ((direction == Direction.UP) and (option[-1] == other_opt[0]).all()) or\
-                    ((direction == Direction.DOWN) and (option[0] == other_opt[-1]).all()) or\
-                    ((direction == Direction.LEFT) and (option[:, -1] == other_opt[:, 0]).all()) or\
-                    ((direction == Direction.RIGHT) and (option[:, 0] == other_opt[:, -1]).all())
-                ):
-                    overlap_able = True
+                if option.is_adjacent_to(other_opt, direction):
+                    new_options.append(option)
                     break
-            if overlap_able: new_options.append(option)
 
         updated = len(new_options) != len(self._options)
         self._options = new_options
@@ -58,6 +83,6 @@ class CellImage:
         return updated
 
     def collapse(self):
-        self._img = rand.choice(self._options)
-        self._options = [self._img]
+        counts = [tile.frequency for tile in self._options]
+        self._options = rand.sample(self._options, 1, counts=counts)
         self._collapsed = True
