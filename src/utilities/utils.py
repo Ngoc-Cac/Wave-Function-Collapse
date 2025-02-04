@@ -9,10 +9,13 @@ from scipy.ndimage import rotate
 
 from wfc.cell_image import (
     Direction,
-    TileImage
+    TileImage,
+    Cell
 )
 
-from typing import Iterable
+from typing import (
+    Iterable,
+    Literal)
 
 
 def _augment_by_rotation(patterns: list[np.ndarray]) -> list[np.ndarray]:
@@ -31,6 +34,32 @@ def _augment_by_rotation(patterns: list[np.ndarray]) -> list[np.ndarray]:
             rotated_patterns.append(twensev)
     return rotated_patterns
 
+def concat_grid(tiles_grid: list[Cell],
+                tiles_shape: tuple[int, int, Literal[3]],
+                dimension: tuple[int, int]) -> np.ndarray:
+    """
+    Concatenate a grid of Cell objects into a single image.
+
+    This asumes that every Cell has a superposition state, else its\
+        image representation will be filled with black.
+
+    ## Parameters:
+        tiles_grid: list of Cell objects to concatenate
+        tiles_shape: the dimension of a Cell
+        dimension: dimension of the final image after concatenation
+
+    ## Return
+    A `numpy.ndarray` of shape `(int, int, 3)`
+    """
+    failure_cell = np.zeros(tiles_shape, dtype='uint8')
+    row_pixels = []
+    for i in range(dimension[0]):
+        row = i * dimension[1]
+        temp = np.concatenate([cell.image if cell.image is not None else failure_cell
+                               for cell in tiles_grid[row:row + dimension[1]]], axis=1)
+        row_pixels.append(temp)
+    return np.concatenate(row_pixels)
+
 def show_tiles(images: Iterable[np.ndarray])\
     -> tuple[matplotlib.figure.Figure, np.ndarray[plt.Axes]]:
     rows = int(np.sqrt(len(images)))
@@ -46,6 +75,7 @@ def show_tiles(images: Iterable[np.ndarray])\
     for i, image in enumerate(images):
         ax_arr[(i - i % cols) // cols, i % cols].imshow(image)
     return fig, ax_arr
+
 
 def load_patterns(directory: str, rotate: bool = True)\
     -> list[np.ndarray]:

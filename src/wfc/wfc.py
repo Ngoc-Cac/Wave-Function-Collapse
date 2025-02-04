@@ -1,6 +1,10 @@
 import random as rand
 import numpy as np
 
+from dataclasses import dataclass
+
+from utilities.PriorityQueue import PriorityQueue
+from utilities.utils import concat_grid
 from wfc.cell_image import (
     Cell,
     Direction,
@@ -10,82 +14,63 @@ from wfc.cell_image import (
 from typing import (
     Generator,
     Iterable,
-    Literal,
     Optional
 )
 
 
-def concat_grid(tiles_grid: list[Cell],
-                tiles_shape: tuple[int, int, Literal[3]],
-                dimension: tuple[int, int]) -> np.ndarray:
-    """
-    Concatenate a grid of Cell objects into a single image.
+@dataclass
+class _CellDataContainer():
+    index: int
+    cell: Cell
 
-    This asumes that every Cell has a superposition state, else its\
-        image representation will be filled with black.
-
-    ## Parameters:
-        tiles_grid: list of Cell objects to concatenate
-        tiles_shape: the dimension of a Cell
-        dimension: dimension of the final image after concatenation
-
-    ## Return
-    A `numpy.ndarray` of shape `(int, int, 3)`
-    """
-    failure_cell = np.zeros(tiles_shape, dtype='uint8')
-    row_pixels = []
-    for i in range(dimension[0]):
-        row = i * dimension[1]
-        temp = np.concatenate([cell.image if cell.image is not None else failure_cell
-                               for cell in tiles_grid[row:row + dimension[1]]], axis=1)
-        row_pixels.append(temp)
-    return np.concatenate(row_pixels)
+    def __lt__(self, other:'_CellDataContainer') -> bool:
+        return self.cell.entropy < other.cell.entropy
+    def __eq__(self, other: '_CellDataContainer') -> bool:
+        return self.index == other.index
+    
+    def __hash__(self) -> int:
+        return hash(self.index)
 
 def _propogate(position: int,
                output_dimension: tuple[int, int],
-               generated_img: list[Cell]) -> bool:
+               generated_img: list[Cell],
+               non_collapse_queue: PriorityQueue[_CellDataContainer]) -> bool:
     """
     Propogate a wave from a position
     """
-    row = (position - position % output_dimension[1]) // output_dimension[1]
     col = position % output_dimension[1]
+    row = (position - col) // output_dimension[1]
 
-    stack: list[tuple[int, Direction]] = []
+    stack: list[tuple[int, int, int, int, Direction]] = []
     if row - 1 > -1:
-        stack.append(((row - 1) * output_dimension[1] + col, Direction.UP))
+        stack.append((row - 1, col, row, col, Direction.UP))
     if row + 1 < output_dimension[0]:
-        stack.append(((row + 1) * output_dimension[1] + col, Direction.DOWN))
+        stack.append((row + 1, col, row, col, Direction.DOWN))
     if col - 1 > -1:
-        stack.append((row * output_dimension[1] + col - 1, Direction.LEFT))
+        stack.append((row, col - 1, row, col, Direction.LEFT))
     if col + 1 < output_dimension[1]:
-        stack.append((row * output_dimension[1] + col + 1, Direction.RIGHT))
+        stack.append((row, col + 1, row, col, Direction.RIGHT))
 
     while stack:
-        index, direction = stack.pop()
-        row = (index - index % output_dimension[1]) // output_dimension[1]
-        col = index % output_dimension[1]
-
-        match direction:
-            case Direction.UP:
-                other_index = (row + 1) * output_dimension[1] + col
-            case Direction.DOWN:
-                other_index = (row - 1) * output_dimension[1] + col
-            case Direction.LEFT:
-                other_index = index + 1
-            case Direction.RIGHT:
-                other_index = index - 1
-        if not generated_img[index].update_options(generated_img[other_index], direction):
-            continue
+        row, col, other_row, other_col, direction = stack.pop()
         
+        index = row * output_dimension[1] + col
+        other_index = other_row * output_dimension[1] + other_col
+        if (
+            generated_img[index].is_collapsed or\
+            not generated_img[index].update_options(generated_img[other_index], direction)
+        ): continue
+        non_collapse_queue.push(_CellDataContainer(index, generated_img[index]))
+
         if not generated_img[index].is_valid: return False
         if row - 1 > -1:
-            stack.append(((row - 1) * output_dimension[1] + col, Direction.UP))
+            stack.append((row - 1, col, row, col, Direction.UP))
         if row + 1 < output_dimension[0]:
-            stack.append(((row + 1) * output_dimension[1] + col, Direction.DOWN))
+            stack.append((row + 1, col, row, col, Direction.DOWN))
         if col - 1 > -1:
-            stack.append((row * output_dimension[1] + col - 1, Direction.LEFT))
+            stack.append((row, col - 1, row, col, Direction.LEFT))
         if col + 1 < output_dimension[1]:
-            stack.append((row * output_dimension[1] + col + 1, Direction.RIGHT))
+            stack.append((row, col + 1, row, col, Direction.RIGHT))
 
     return all(cell.is_valid for cell in generated_img)
 
@@ -105,17 +90,21 @@ def _wfc(
         matrix: list[Cell] = [Cell(patterns) for _ in range(output_dimension[0] * output_dimension[1])]
         min_index = rand.randint(0, output_dimension[0] * output_dimension[1] - 1)
         matrix[min_index].collapse()
-        _propogate(min_index, output_dimension, matrix)
-
-        while not all(cell.is_collapsed for cell in matrix):
-            yield concat_grid(matrix, patterns[0].image.shape, output_dimension)
-
-            min_index, _ = min([(i, cell.entropy) for i, cell in enumerate(matrix) if not cell.is_collapsed],
-                               key=lambda tup: tup[1])
-            matrix[min_index].collapse()
-            if not _propogate(min_index, output_dimension, matrix): break
+        non_collapsed = PriorityQueue((_CellDataContainer(i, cell) for i, cell in enumerate(matrix)
+                                       if not cell.is_collapsed))
+        _propogate(min_index, output_dimension, matrix, non_collapsed)
 
         yield concat_grid(matrix, patterns[0].image.shape, output_dimension)
+
+        while not all(cell.is_collapsed for cell in matrix):
+            temp = non_collapsed.pop()
+            min_index, cell = temp.index, temp.cell
+
+            cell.collapse()
+            if not _propogate(min_index, output_dimension, matrix, non_collapsed): break
+
+            yield concat_grid(matrix, patterns[0].image.shape, output_dimension)
+
 
         success = all(cell.is_collapsed for cell in matrix)
         if not repeat_until_success: break
@@ -129,11 +118,12 @@ class CollapsedError(Exception):
 class WFC:
     __slots__ = '_generator', '_need_update',\
                 '_output_dim', '_patterns',\
-                '_repeat_til_success',\
+                '_repeat_til_success', '_rerun',\
                 '_return_val'
     def __init__(self, output_dimension: tuple[int, int],
                  patterns: Iterable[TileImage], *,
-                 repeat_until_success: bool = True):
+                 repeat_until_success: bool = True,
+                 rerun: bool = False):
         if not isinstance(output_dimension, tuple) or\
            len(output_dimension) != 2 or\
            any((not isinstance(i, int)) for i in output_dimension):
@@ -144,11 +134,14 @@ class WFC:
             raise TypeError("Expected an Iterable of TileImage")
         if not isinstance(repeat_until_success, bool):
             raise TypeError('repeat_until_success must be a bool')
+        if not isinstance(rerun, bool):
+            raise TypeError('rerun must be a bool')
 
         self._output_dim = output_dimension
         self._patterns = list(patterns)
         self._repeat_til_success = repeat_until_success
-        self._init_gen()
+        self._rerun = rerun
+        self._need_update = True
 
     @property
     def output_dimension(self) -> tuple[int, int]:
@@ -184,6 +177,17 @@ class WFC:
         self._need_update = True
 
     @property
+    def rerun(self) -> bool:
+        return self._rerun
+    @rerun.setter
+    def rerun(self, value: bool):
+        if not isinstance(value, bool):
+            raise TypeError('rerun must be a bool')
+        self._rerun = value
+        if not self._return_val is None:
+            self._need_update = True
+
+    @property
     def wfc_result(self) -> Optional[tuple[bool, np.ndarray]]:
         return self._return_val
 
@@ -193,23 +197,30 @@ class WFC:
         self._return_val = None
         self._need_update = False
 
-    def run(self, restart: bool = False) -> tuple[bool, np.ndarray]:
-        if self._need_update or restart: self._init_gen()
+    def run(self) -> tuple[bool, np.ndarray]:
+        if self._need_update: self._init_gen()
         prev_result = self._return_val
         for _ in self: pass
         
         if self._return_val is None:
             self._return_val = prev_result
             err_msg = "The current configuration for Wave Function Collapse has already" +\
-                      " been run. Set restart = True to rerun."
+                      " been collapsed. Consider setting rerun = True to rerun."
             raise CollapsedError(err_msg)
         return self._return_val
 
     def __iter__(self)\
         -> Generator[np.ndarray, None, tuple[bool, np.ndarray]]:
-        if self._need_update: self._init_gen()
-        self._return_val = yield from self._generator
-        return self._return_val
+        # if self._need_update: self._init_gen()
+        # self._return_val = yield from self._generator
+        # return self._return_val
+        return self
     
     def __next__(self) -> np.ndarray:
-        return next(self._generator)
+        if self._need_update: self._init_gen()
+        try:
+            return next(self._generator)
+        except StopIteration as exc:
+            self._return_val = exc.value
+            if self._rerun: self._need_update = True
+            raise exc
