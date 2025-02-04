@@ -2,12 +2,15 @@ import os
 
 import cv2
 import numpy as np
-import matplotlib.pyplot as plt
 import matplotlib.figure
+import matplotlib.pyplot as plt
 
 from scipy.ndimage import rotate
 
-from wfc.cell_image import Direction, TileImage
+from wfc.cell_image import (
+    Direction,
+    TileImage
+)
 
 from typing import Iterable
 

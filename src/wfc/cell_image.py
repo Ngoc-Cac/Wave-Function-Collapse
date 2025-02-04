@@ -1,9 +1,13 @@
 import random as rand
+
 from enum import Enum
 
 import numpy as np
 
-from typing import Iterable, Optional
+from typing import (
+    Iterable,
+    Optional
+)
 
 class Direction(Enum):
     UP = 'up'
@@ -62,7 +66,7 @@ class Cell:
         elif self._collapsed: return self._options[0].image
         else:
             image = np.ndarray(self._options[0].image.shape)
-            image[:] = np.mean(np.mean(self._options, axis=0), axis=(0, 1))
+            image[:] = np.mean(np.mean([tile.image for tile in self._options], axis=0), axis=(0, 1))
             return image.astype('uint8')
     @property
     def is_collapsed(self) -> bool: return self._collapsed
