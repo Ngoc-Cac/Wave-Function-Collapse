@@ -10,7 +10,8 @@ from wfc.cell_image import (
 from typing import (
     Generator,
     Iterable,
-    Literal
+    Literal,
+    Optional
 )
 
 
@@ -88,10 +89,10 @@ def _propogate(position: int,
 
     return all(cell.is_valid for cell in generated_img)
 
-def _wave_function_collapse(
+def _wfc(
         patterns: list[TileImage],
-        output_dimension: tuple[int, int], *,
-        repeat_until_success: bool = True
+        output_dimension: tuple[int, int],
+        repeat_until_success: bool
     ) -> Generator[np.ndarray, None, tuple[bool, np.ndarray]]:
     """
     Wave function collapse on a set of tiles. In order to work properly,\
@@ -126,9 +127,10 @@ class CollapsedError(Exception):
     """
 
 class WFC:
-    __slots__ = '_generator', '_output_dim',\
-                '_patterns', '_repeat_til_success',\
-                '_need_update', '_return_val'
+    __slots__ = '_generator', '_need_update',\
+                '_output_dim', '_patterns',\
+                '_repeat_til_success',\
+                '_return_val'
     def __init__(self, output_dimension: tuple[int, int],
                  patterns: Iterable[TileImage], *,
                  repeat_until_success: bool = True):
@@ -146,8 +148,6 @@ class WFC:
         self._output_dim = output_dimension
         self._patterns = list(patterns)
         self._repeat_til_success = repeat_until_success
-        self._need_update = False
-
         self._init_gen()
 
     @property
@@ -183,19 +183,25 @@ class WFC:
         self._repeat_til_success = True
         self._need_update = True
 
+    @property
+    def wfc_result(self) -> Optional[tuple[bool, np.ndarray]]:
+        return self._return_val
+
     def _init_gen(self):
-        self._generator = _wave_function_collapse(self._patterns, self._output_dim,
-                                                  repeat_until_success=self._repeat_til_success)
+        self._generator = _wfc(self._patterns, self._output_dim,
+                               self._repeat_til_success)
+        self._return_val = None
         self._need_update = False
 
     def run(self, restart: bool = False) -> tuple[bool, np.ndarray]:
         if self._need_update or restart: self._init_gen()
-        ignore = None
-        for ignore in self: pass
+        prev_result = self._return_val
+        for _ in self: pass
         
-        if ignore is None:
+        if self._return_val is None:
+            self._return_val = prev_result
             err_msg = "The current configuration for Wave Function Collapse has already" +\
-                      " been run. Set restart = True for rerun."
+                      " been run. Set restart = True to rerun."
             raise CollapsedError(err_msg)
         return self._return_val
 
