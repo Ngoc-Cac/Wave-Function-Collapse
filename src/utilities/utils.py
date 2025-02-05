@@ -118,7 +118,7 @@ def generate_patterns(image_filepath: str,
     if rotate: 
         for rotated_pattern in _augment_by_rotation([value[0] for value in unique_patterns.values()]):
             temp_key = tuple(rotated_pattern.flatten())
-            unique_patterns[temp_key] = [1, rotated_pattern]
+            unique_patterns[temp_key] = [rotated_pattern, 1]
     return [_OverlappingModel_TileImage(*value) for value in unique_patterns.values()]
 
 
