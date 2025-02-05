@@ -60,11 +60,14 @@ def concat_grid(tiles_grid: list[Cell],
         row_pixels.append(temp)
     return np.concatenate(row_pixels)
 
-def show_tiles(images: Iterable[np.ndarray])\
+def show_tiles(images: Iterable[np.ndarray], *, fig = matplotlib.figure.Figure)\
     -> tuple[matplotlib.figure.Figure, np.ndarray[plt.Axes]]:
     rows = int(np.sqrt(len(images)))
     cols = int(np.ceil(len(images) / rows))
-    fig, ax_arr = plt.subplots(rows, cols)
+    if fig is None:
+        fig, ax_arr = plt.subplots(rows, cols)
+    else:
+        ax_arr = fig.subplots(rows, cols)
     if rows == 1:
         temp = np.ndarray((1, cols), dtype=object)
         temp[0] = np.array(ax_arr)

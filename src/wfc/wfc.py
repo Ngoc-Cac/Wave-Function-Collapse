@@ -90,8 +90,6 @@ def _wfc(
     
     while not success:
         matrix: list[Cell] = [Cell(patterns) for _ in range(output_dimension[0] * output_dimension[1])]
-        yield intermediate_result()
-
         min_index = rand.randint(0, output_dimension[0] * output_dimension[1] - 1)
         matrix[min_index].collapse()
         non_collapsed = PriorityQueue((_CellDataContainer(i, cell) for i, cell in enumerate(matrix)
@@ -192,8 +190,13 @@ class WFC:
             self._need_update = True
 
     @property
-    def wfc_result(self) -> Optional[tuple[bool, np.ndarray]]:
-        return self._return_val
+    def wfc_result(self) -> tuple[bool, np.ndarray]:
+        if self._return_val is None:
+            image = np.ndarray(self._patterns[0].image.shape)
+            image[:] = np.mean(np.mean([tile.image for tile in self._patterns], axis=0), axis=(0, 1))
+            return False, image.astype['uint8']
+        else:
+            return self._return_val
 
     def _init_gen(self):
         self._generator = _wfc(self._patterns, self._output_dim,
