@@ -144,6 +144,7 @@ class WFC:
         self._repeat_til_success = repeat_until_success
         self._rerun = rerun
         self._need_update = True
+        self._return_val = None
 
     @property
     def output_dimension(self) -> tuple[int, int]:
@@ -194,7 +195,7 @@ class WFC:
         if self._return_val is None:
             image = np.ndarray(self._patterns[0].image.shape)
             image[:] = np.mean(np.mean([tile.image for tile in self._patterns], axis=0), axis=(0, 1))
-            return False, image.astype['uint8']
+            return False, image.astype('uint8')
         else:
             return self._return_val
 

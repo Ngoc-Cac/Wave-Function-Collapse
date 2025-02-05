@@ -33,10 +33,10 @@ class MplCanvas(FigureCanvasQTAgg):
             ax.axis('off')
         else:
             ax = self.fig.axes[0]
-            
+
         axes_image = ax.imshow(image)
         self.fig.tight_layout()
-        return axes_image
+        return axes_image, ax
     
     def show_tiles(self, tiles):
         self.fig.clear()
@@ -70,12 +70,12 @@ class Animator(QRunnable):
 
         while not self._kill:
             if axes_image is None:
-                axes_image = self._canvas.show_image(image)
+                axes_image, ax = self._canvas.show_image(image)
                 self._canvas.draw()
             else:
                 axes_image.set_data(image)
-                self._canvas.ax.draw_artist(axes_image)
-                self._canvas.blit(self._canvas.ax.bbox)
+                ax.draw_artist(axes_image)
+                self._canvas.blit(ax.bbox)
 
             if self._sleep_int > 0: time.sleep(self._sleep_int / 1000)
 
