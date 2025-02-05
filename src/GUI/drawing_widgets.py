@@ -25,9 +25,14 @@ class MplCanvas(FigureCanvasQTAgg):
         self.fig = Figure(figsize=(width, height), dpi=dpi)
         super().__init__(self.fig)
 
+    def _clear_fig(self):
+        temp = self.fig.get_suptitle()
+        self.fig.clear()
+        self.fig.suptitle(temp)
+
     def show_image(self, image):
         if len(self.fig.axes) != 1:
-            self.fig.clear()
+            self._clear_fig()
             ax = self.fig.add_subplot(111)
             ax.invert_yaxis()
             ax.axis('off')
@@ -39,7 +44,7 @@ class MplCanvas(FigureCanvasQTAgg):
         return axes_image, ax
     
     def show_tiles(self, tiles):
-        self.fig.clear()
+        self._clear_fig()
         _, axes = show_tiles(tiles, fig=self.fig)
         self.fig.tight_layout()
         return axes
