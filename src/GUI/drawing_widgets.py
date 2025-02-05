@@ -23,6 +23,7 @@ class MplCanvas(FigureCanvasQTAgg):
     def __init__(self, width=8, height=5, dpi=100):
         self.fig = Figure(figsize=(width, height), dpi=dpi)
         self.ax = self.fig.add_subplot(111)
+        self.ax.invert_yaxis()
         self.ax.axis('off')
         super().__init__(self.fig)
 
@@ -43,15 +44,24 @@ class Animator(QRunnable):
 
     @pyqtSlot()
     def run(self):
+        self._kill = False
+        axes_image = None
         try: image = next(self._wfc)
         except StopIteration:
             image = self._wfc.wfc_result[1]
             self._about_to_finish()
-            
+
         while not self._kill:
-            self._canvas.ax.imshow(image)
-            self._canvas.draw()
-            time.sleep(self._sleep_int / 1000)
+            if axes_image is None:
+                self._canvas.ax.clear()
+                axes_image = self._canvas.ax.imshow(image)
+                self._canvas.draw()
+            else:
+                axes_image.set_data(image)
+                self._canvas.ax.draw_artist(axes_image)
+                self._canvas.blit(self._canvas.ax.bbox)
+
+            if self._sleep_int > 0: time.sleep(self._sleep_int / 1000)
 
             try: image = next(self._wfc)
             except StopIteration:
@@ -62,6 +72,10 @@ class Animator(QRunnable):
     @property
     def finished(self):
         return self._signal.finished
+    
+    @property
+    def is_running(self):
+        return not self._kill
     
     def _about_to_finish(self):
         self._kill = True

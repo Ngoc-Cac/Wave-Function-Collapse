@@ -85,16 +85,20 @@ def _wfc(
 
     ## Parameters
     """
+    intermediate_result = lambda: concat_grid(matrix, patterns[0].image.shape, output_dimension)
     success = False
+    
     while not success:
         matrix: list[Cell] = [Cell(patterns) for _ in range(output_dimension[0] * output_dimension[1])]
+        yield intermediate_result()
+
         min_index = rand.randint(0, output_dimension[0] * output_dimension[1] - 1)
         matrix[min_index].collapse()
         non_collapsed = PriorityQueue((_CellDataContainer(i, cell) for i, cell in enumerate(matrix)
                                        if not cell.is_collapsed))
         _propogate(min_index, output_dimension, matrix, non_collapsed)
 
-        yield concat_grid(matrix, patterns[0].image.shape, output_dimension)
+        yield intermediate_result()
 
         while not all(cell.is_collapsed for cell in matrix):
             temp = non_collapsed.pop()
@@ -103,12 +107,12 @@ def _wfc(
             cell.collapse()
             if not _propogate(min_index, output_dimension, matrix, non_collapsed): break
 
-            yield concat_grid(matrix, patterns[0].image.shape, output_dimension)
+            yield intermediate_result()
 
 
         success = all(cell.is_collapsed for cell in matrix)
         if not repeat_until_success: break
-    return success, concat_grid(matrix, patterns[0].image.shape, output_dimension)
+    return success, intermediate_result()
 
 class CollapsedError(Exception):
     """
