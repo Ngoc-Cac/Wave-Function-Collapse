@@ -14,6 +14,7 @@ from PyQt6.QtCore import (
 )
 
 from wfc.wfc import WFC
+from utilities.utils import show_tiles
 
 from typing import TypeAlias
 
@@ -22,10 +23,26 @@ ms: TypeAlias = int
 class MplCanvas(FigureCanvasQTAgg):
     def __init__(self, width=8, height=5, dpi=100):
         self.fig = Figure(figsize=(width, height), dpi=dpi)
-        self.ax = self.fig.add_subplot(111)
-        self.ax.invert_yaxis()
-        self.ax.axis('off')
         super().__init__(self.fig)
+
+    def show_image(self, image):
+        if len(self.fig.axes) != 1:
+            self.fig.clear()
+            ax = self.fig.add_subplot(111)
+            ax.invert_yaxis()
+            ax.axis('off')
+        else:
+            ax = self.fig.axes[0]
+            
+        axes_image = ax.imshow(image)
+        self.fig.tight_layout()
+        return axes_image
+    
+    def show_tiles(self, tiles):
+        self.fig.clear()
+        _, axes = show_tiles(tiles, fig=self.fig)
+        self.fig.tight_layout()
+        return axes
 
 
 class _AnimatorSignals(QObject):
@@ -53,8 +70,7 @@ class Animator(QRunnable):
 
         while not self._kill:
             if axes_image is None:
-                self._canvas.ax.clear()
-                axes_image = self._canvas.ax.imshow(image)
+                axes_image = self._canvas.show_image(image)
                 self._canvas.draw()
             else:
                 axes_image.set_data(image)

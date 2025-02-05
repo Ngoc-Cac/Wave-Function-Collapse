@@ -1,6 +1,7 @@
-import os.path as osp
-
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import (
+    Qt,
+    pyqtSignal
+)
 from PyQt6.QtWidgets import (
     QHBoxLayout,
     QPushButton,
@@ -12,6 +13,7 @@ from GUI.drawing_widgets import MplCanvas
 
 
 class Home(QWidget):
+    button_clicked=pyqtSignal(str)
     def __init__(self):
         super().__init__()        
         vbox = QVBoxLayout()
@@ -36,8 +38,18 @@ class Home(QWidget):
         self.pause_butt = QPushButton()
         self.start_butt.setText('Start')
         self.pause_butt.setText('Pause')
+        self.start_butt.clicked.connect(lambda: self.button_clicks(True))
+        self.pause_butt.clicked.connect(lambda: self.button_clicks(False))
         
         hbox = QHBoxLayout()
         hbox.addWidget(self.start_butt)
         hbox.addWidget(self.pause_butt)
         return hbox
+    
+    def button_clicks(self, start: bool):
+        if start:
+            self.start_butt.setDisabled(True)
+            self.button_clicked.emit('start')
+        else:
+            self.start_butt.setEnabled(False)
+            self.button_clicked.emit('pause')
