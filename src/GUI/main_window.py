@@ -45,8 +45,12 @@ class MainWindow(QMainWindow):
         self.home.button_clicked.connect(self.process_animation)
         self.home.change_dim_req.connect(lambda rows, cols: self.config_wfc((rows, cols), 'dim'))
         self.animator.finished.connect(lambda: self.process_animation('finish'))
-        self.tab.currentChanged.connect(lambda _: self.process_animation('pause'))
+        self.tab.currentChanged.connect(self._change_tab)
         self.image_loader.change_pattern_req.connect(lambda x: self.config_wfc(x, 'patterns'))
+
+    def _change_tab(self, index: int):
+        self.home.start_butt.setDisabled(False)
+        self.process_animation('pause')
 
     def _prepare_wfc(self):
         path = osp.join(_ROOT_DIR, 'images', 'tilesets', 'Circuit')
@@ -55,9 +59,10 @@ class MainWindow(QMainWindow):
         self.WFC = WFC(dimension, default_tiles, rerun=True)
         self.home.canvas.show_image(self.WFC.wfc_result[1])
         self.home.canvas.draw()
+        self.home.dim_label.setText(f'Dimension: {dimension}')
 
         self.threadpool = QThreadPool()
-        self.animator = Animator(self.home.canvas, self.WFC, 10)
+        self.animator = Animator(self.home.canvas, self.WFC, 2)
 
 
     def config_wfc(self, value, param: Literal['patterns', 'dim']):
@@ -71,14 +76,17 @@ class MainWindow(QMainWindow):
         elif param == 'dim':
             try:
                 self.WFC.output_dimension = value
+                self.home.dim_label.setText(f'Dimension: {value}')
                 ConfirmationDialog(self, f'Succesfully set dimension to {value}').exec()
             except TypeError:
                 ErrorDialog(self, 'Something went wrong while setting new dimension').exec()
                 return
             
 
-        self.home.canvas.show_image(self.WFC.wfc_result[1])
+        _, ax = self.home.canvas.show_image(self.WFC.wfc_result[1])
         self.home.canvas.draw()
+        self.home.canvas.blit(ax.bbox)
+
 
     def process_animation(self, state: Literal['start', 'pause', 'finish']):
         match state:
