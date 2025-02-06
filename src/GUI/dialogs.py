@@ -11,9 +11,7 @@ class ErrorDialog(QDialog):
     def __init__(self, parent, error_msg):
         super().__init__(parent)
 
-        QBtn = QDialogButtonBox.StandardButton.Ok
-
-        self.buttonBox = QDialogButtonBox(QBtn)
+        self.buttonBox = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok)
         self.buttonBox.accepted.connect(self.close)
         message = QLabel(error_msg)
 
@@ -26,33 +24,11 @@ class ErrorDialog(QDialog):
         icon = self.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxCritical)
         self.setWindowIcon(icon)
 
-class WarningDialog(QDialog):
-    def __init__(self, parent, msg):
-        super().__init__(parent)
-
-        QBtn = QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
-
-        self.buttonBox = QDialogButtonBox(QBtn)
-        self.buttonBox.accepted.connect(self.close)
-        self.buttonBox.rejected.connect(self.close)
-        message = QLabel(msg)
-
-        vbox = QVBoxLayout()
-        vbox.addWidget(message)
-        vbox.addWidget(self.buttonBox)
-        self.setLayout(vbox)
-
-        self.setWindowTitle('Warning, do at your own risk!')
-        icon = self.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxWarning)
-        self.setWindowIcon(icon)
-
 class ConfirmationDialog(QDialog):
     def __init__(self, parent, msg):
         super().__init__(parent)
 
-        QBtn = QDialogButtonBox.StandardButton.Ok
-
-        self.buttonBox = QDialogButtonBox(QBtn)
+        self.buttonBox = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok)
         self.buttonBox.accepted.connect(self.close)
         message = QLabel(msg)
 
