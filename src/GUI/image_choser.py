@@ -1,3 +1,5 @@
+import os.path as osp
+
 from matplotlib.pyplot import imread
 
 from PyQt6.QtGui import QFont
@@ -17,7 +19,7 @@ from PyQt6.QtWidgets import (
     QWidget
 )
 
-from GUI.dialogs import WarningDialog
+from GUI import _ROOT_DIR
 from GUI.drawing_widgets import MplCanvas
 from utilities.utils import load_patterns, generate_patterns
 from wfc.cell_image import TileImage
@@ -30,6 +32,9 @@ INFO_FONT.setPointSize(11)
 INFO_FONT.setBold(True)
 ALTER_INFO_FONT = QFont()
 ALTER_INFO_FONT.setPointSize(10)
+WARNING_FONT = QFont()
+WARNING_FONT.setBold(True)
+WARNING_FONT.setUnderline(True)
 
 class _ButtonPanel(QWidget):
     browse_req=pyqtSignal(bool)
@@ -52,6 +57,12 @@ class _ButtonPanel(QWidget):
         rotate, pix_hbox = self._init_config_area()
         grid.addWidget(rotate, 2, 0)
         grid.addLayout(pix_hbox, 2, 1)
+
+        self.warning_label = QLabel()
+        self.warning_label.setFont(WARNING_FONT)
+        self.warning_label.setStyleSheet('color: red')
+        self.warning_label.setFixedHeight(15)
+        grid.addWidget(self.warning_label, 3, 1)
 
         self.setLayout(grid)
 
@@ -98,7 +109,8 @@ class _ButtonPanel(QWidget):
         npix_spin.lineEdit().setReadOnly(True)
         npix_spin.setValue(3)
         npix_spin.setFont(ALTER_INFO_FONT)
-        npix_spin.valueChanged.connect(lambda num: self.change_config_req.emit(num, 'n_pixels'))
+        npix_spin.setStyleSheet('selection-background-color: transparent;')
+        npix_spin.valueChanged.connect(self.change_pixels)
 
         info_label = QLabel('No. of pixels: ')
         info_label.setFont(INFO_FONT)
@@ -110,27 +122,32 @@ class _ButtonPanel(QWidget):
 
         return rotate_check, hbox
 
+    def change_pixels(self, value: int):
+        txt = '' if value < 4 else 'No. of pixels > 3 may cause lag!'
+        self.warning_label.setText(txt)
+        self.change_config_req.emit(value, 'n_pixels')
+
 
 class ImageLoader(QWidget):
     change_pattern_req=pyqtSignal(list)
     def __init__(self):
         super().__init__()
 
-        self._patterns_data = {'patterns': [],
-                               'rotate': False,
-                               'n_pixels': 3,
-                               'path': (True, '')}
-        place1, place2 = self._init_canvas()
+        self._load_default()
 
+        place1, place2 = self._init_canvas()
         grid = QGridLayout()
         grid.addWidget(self._init_button_panel(), 0, 0)
         grid.addWidget(place1, 0, 1)
         grid.addWidget(place2, 0, 2)
         self.setLayout(grid)
 
+        self.generate_patterns()
+        self._patterns_data['rotate'] = False
+
     def _init_button_panel(self):
         panel = _ButtonPanel()
-        panel.setFixedSize(390, 115)
+        panel.setFixedSize(390, 120)
         panel.browse_req.connect(self.browse)
         panel.generate_req.connect(self.generate_patterns)
         panel.save_req.connect(lambda: self.change_pattern_req.emit(self._patterns_data['patterns']))
@@ -157,9 +174,15 @@ class ImageLoader(QWidget):
 
         return placeholder_widget, placeholder_widget2
     
+    def _load_default(self):
+        path = osp.join(_ROOT_DIR, 'images', 'tilesets', 'Circuit')
+        self._patterns_data = {'patterns': [],
+                               'rotate': True,
+                               'n_pixels': 3,
+                               'path': (False, path)}
+
     def change_config(self, value: int, param: Literal['rotate', 'n_pixels']):
         if param == 'rotate': value = (value == 2)
-        # elif param == 'n_pixels' and value > 3:
         self._patterns_data[param] = value
 
     def browse(self, file: bool):
@@ -170,6 +193,7 @@ class ImageLoader(QWidget):
             self.canvas.draw()
         else:
             path = QFileDialog.getExistingDirectory(self, 'Choose A Tileset')
+            self.canvas.ax.clear()
 
         if not path: return
 
