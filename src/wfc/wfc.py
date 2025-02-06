@@ -149,7 +149,7 @@ class WFC:
     def output_dimension(self) -> tuple[int, int]:
         return self._output_dim
     @output_dimension.setter
-    def outpu_dimension(self, new_dim: tuple[int, int]):
+    def output_dimension(self, new_dim: tuple[int, int]):
         if not isinstance(new_dim, tuple) or len(new_dim) != 2 or\
            any((not isinstance(i, int)) for i in new_dim):
             raise TypeError(f"Expected a tuple of two int: {new_dim}")
