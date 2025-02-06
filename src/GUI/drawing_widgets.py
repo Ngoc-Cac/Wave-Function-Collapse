@@ -23,31 +23,21 @@ ms: TypeAlias = int
 class MplCanvas(FigureCanvasQTAgg):
     def __init__(self, width=8, height=5, dpi=100):
         self.fig = Figure(figsize=(width, height), dpi=dpi)
+        self.ax = self.fig.add_subplot(111)
+        self.ax.invert_yaxis()
+        self.ax.axis('off')
         super().__init__(self.fig)
 
-    def _clear_fig(self):
-        temp = self.fig.get_suptitle()
-        self.fig.clear()
-        self.fig.suptitle(temp)
-
     def show_image(self, image):
-        if len(self.fig.axes) != 1:
-            self._clear_fig()
-            ax = self.fig.add_subplot(111)
-            ax.invert_yaxis()
-            ax.axis('off')
-        else:
-            ax = self.fig.axes[0]
-
-        axes_image = ax.imshow(image)
+        self.ax.clear()
+        axes_image = self.ax.imshow(image)
         self.fig.tight_layout()
-        return axes_image, ax
+        return axes_image, self.ax
     
     def show_tiles(self, tiles):
-        self._clear_fig()
-        _, axes = show_tiles(tiles, fig=self.fig)
+        self.ax.clear()
+        show_tiles(tiles, ax=self.ax)
         self.fig.tight_layout()
-        return axes
 
 
 class _AnimatorSignals(QObject):
