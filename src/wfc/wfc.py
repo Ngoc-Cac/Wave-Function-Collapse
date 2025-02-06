@@ -13,8 +13,7 @@ from wfc.cell_image import (
 
 from typing import (
     Generator,
-    Iterable,
-    Optional
+    Iterable
 )
 
 

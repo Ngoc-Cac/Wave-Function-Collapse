@@ -2,9 +2,9 @@ import os
 
 import cv2
 import numpy as np
-import matplotlib.figure
 import matplotlib.pyplot as plt
 
+from matplotlib.axes import Axes
 from scipy.ndimage import rotate
 
 from wfc.cell_image import (
@@ -15,7 +15,9 @@ from wfc.cell_image import (
 
 from typing import (
     Iterable,
-    Literal)
+    Literal,
+    Optional
+)
 
 
 def _augment_by_rotation(patterns: list[np.ndarray]) -> list[np.ndarray]:
@@ -60,24 +62,26 @@ def concat_grid(tiles_grid: list[Cell],
         row_pixels.append(temp)
     return np.concatenate(row_pixels)
 
-def show_tiles(images: Iterable[np.ndarray], *, fig = matplotlib.figure.Figure)\
-    -> tuple[matplotlib.figure.Figure, np.ndarray[plt.Axes]]:
+def show_tiles(images: Iterable[np.ndarray], *,
+               ax: Optional[Axes] = None)\
+    -> Axes:
     rows = int(np.sqrt(len(images)))
     cols = int(np.ceil(len(images) / rows))
-    if fig is None:
-        fig, ax_arr = plt.subplots(rows, cols)
-    else:
-        ax_arr = fig.subplots(rows, cols)
-    if rows == 1:
-        temp = np.ndarray((1, cols), dtype=object)
-        temp[0] = np.array(ax_arr)
-        ax_arr = temp
+    n_pix = list(images)[0].shape[0]
 
-    for row in ax_arr:
-        for ax in row: ax.axis('off')
+    grid = np.ndarray((n_pix * rows + rows - 1, n_pix * cols + cols - 1, 3), dtype='uint8')
+    grid.fill(255)
+    
     for i, image in enumerate(images):
-        ax_arr[(i - i % cols) // cols, i % cols].imshow(image)
-    return fig, ax_arr
+        col = i % cols
+        row = (i - col) // cols
+        row, col = row * (n_pix + 1), col * (n_pix + 1)
+        grid[row:(row + n_pix), col:(col + n_pix)] = image
+
+    if ax is None: ax = plt.gca()
+    ax.imshow(grid)
+    ax.axis('off')
+    return ax
 
 
 def load_patterns(directory: str, rotate: bool = True)\
