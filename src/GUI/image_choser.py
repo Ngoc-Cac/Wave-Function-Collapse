@@ -189,11 +189,10 @@ class ImageLoader(QWidget):
         if file:
             path = QFileDialog.getOpenFileName(self, 'Choose An Image', None, 'PNG Files (*.png)')
             path = path[0]
-            self.canvas.show_image(imread(path))
-            self.canvas.draw()
         else:
             path = QFileDialog.getExistingDirectory(self, 'Choose A Tileset')
-            self.canvas.ax.clear()
+            self.canvas.clear_image()
+            self.canvas.draw()
 
         if not path: return
 
@@ -204,6 +203,9 @@ class ImageLoader(QWidget):
     def generate_patterns(self):
         path, rotate = self._patterns_data['path'][1], self._patterns_data['rotate']
         if self._patterns_data['path'][0]:
+            self.canvas.show_image(imread(path))
+            self.canvas.draw()
+
             self._patterns_data['patterns'] = generate_patterns(path, self._patterns_data['n_pixels'],
                                                                 rotate)
         else:

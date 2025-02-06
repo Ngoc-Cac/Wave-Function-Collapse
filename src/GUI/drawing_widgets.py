@@ -24,20 +24,22 @@ class MplCanvas(FigureCanvasQTAgg):
     def __init__(self, width=8, height=5, dpi=100):
         self.fig = Figure(figsize=(width, height), dpi=dpi)
         self.ax = self.fig.add_subplot(111)
-        super().__init__(self.fig)
-
-    def show_image(self, image):
-        self.ax.clear()
-        axes_image = self.ax.imshow(image)
         self.ax.axis('off')
         self.fig.tight_layout()
+        super().__init__(self.fig)
+
+    def clear_image(self):
+        self.ax.clear()
+        self.ax.axis('off')
+
+    def show_image(self, image):
+        self.clear_image()
+        axes_image = self.ax.imshow(image)
         return axes_image, self.ax
     
     def show_tiles(self, tiles):
-        self.ax.clear()
+        self.clear_image()
         show_tiles(tiles, ax=self.ax)
-        self.ax.axis('off')
-        self.fig.tight_layout()
 
 
 class _AnimatorSignals(QObject):
