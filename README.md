@@ -38,6 +38,8 @@ To run the code, you need Python 3.10 or above. Please check out `src/demo.ipynb
 ## <a name="gui_demo"></a>Running the demo GUI
 For easier visualisation of the algorithm through animation, there is a small GUI application made with PyQt6 that demonstrates the animation. You can load your own images and patterns through the GUI. However, to modify the constraints as discussed above, this will not be possible unless modifications to the application source code is done.
 
+To run the application, run `src/wfc_demo.py`.
+
 ---
 ---
 <a name="appendix"></a>
