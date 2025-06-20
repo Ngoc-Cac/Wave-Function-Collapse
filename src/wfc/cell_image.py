@@ -87,10 +87,15 @@ class Cell:
         :return: The entropy duh.
         :rtype: float
         """
-        if not len(self._options): return np.inf
+        if self._collapsed: return 0
+        elif not len(self._options): return np.inf
 
         total = sum(tile.frequency for tile in self._options)
-        return np.log2(total) - sum(tile.frequency * np.log2(tile.frequency) for tile in self._options) / total
+        return (
+            np.log2(total) -
+            sum(tile.frequency * np.log2(tile.frequency) for tile in self._options) / total
+        )
+    
     @property
     def image(self) -> Optional[NDArray]:
         """
@@ -102,10 +107,11 @@ class Cell:
         Note: Invalid cell will not have an image representation
         """
         if not len(self._options): return None
-        elif self._collapsed: return self._options[0].image
+        if self._collapsed: return self._options[0].image
         else:
-            image = NDArray(self._options[0].image.shape)
-            image[:] = np.mean(np.mean([tile.image for tile in self._options], axis=0), axis=(0, 1))
+            image = np.array([tile.image for tile in self._options])
+            # image = image.mean(axis=0)
+            image[:] = image.mean(axis=0).mean(axis=(0, 1))
             return image.astype('uint8')
     
     @property
