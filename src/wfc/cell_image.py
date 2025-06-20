@@ -137,8 +137,8 @@ class Cell:
         cell.
 
         :param Cell cell_image: The adjacent cell.
-        :param Direction direction: The direction of the `cell_image`
-            relative to this cell.
+        :param Direction direction: The position of this cell
+            relative to the `cell_image`.
 
         :return bool: Whether or not the options has changed after updating.
         """
