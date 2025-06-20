@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from scipy.ndimage import rotate
 
-from wfc.cell_image import (
+from .cell_image import (
     Direction,
     TileImage,
     Cell
