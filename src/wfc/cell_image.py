@@ -33,17 +33,16 @@ class TileImage:
         """
         Can this tile be adjacent in the `direction` to `tile`
         """
-        match direction:
-            case Direction.UP:
-                result = (self._pattern[-1] == tile._pattern[0]).all()
-            case Direction.DOWN:
-                result = (self._pattern[0] == tile._pattern[-1]).all()
-            case Direction.LEFT:
-                result = (self._pattern[:, -1] == tile._pattern[:, 0]).all()
-            case Direction.RIGHT:
-                result = (self._pattern[:, 0] == tile._pattern[:, -1]).all()
-            case _:
-                raise ValueError("Weird direction passed")
+        if direction == Direction.UP:
+            result = (self._pattern[-1] == tile._pattern[0]).all()
+        elif direction == Direction.DOWN:
+            result = (self._pattern[0] == tile._pattern[-1]).all()
+        elif direction == Direction.LEFT:
+            result = (self._pattern[:, -1] == tile._pattern[:, 0]).all()
+        elif direction == Direction.RIGHT:
+            result = (self._pattern[:, 0] == tile._pattern[:, -1]).all()
+        else:
+            raise ValueError("Weird direction passed")
         return result
 
 class Cell:
