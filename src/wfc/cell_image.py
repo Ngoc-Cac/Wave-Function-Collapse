@@ -4,6 +4,7 @@ from enum import Enum
 
 import numpy as np
 
+from numpy.typing import NDArray
 from typing import (
     Iterable,
     Optional
@@ -17,7 +18,7 @@ class Direction(Enum):
 
 class TileImage:
     __slots__ = '_pattern', '_frequency'
-    def __init__(self, pattern: np.ndarray, frequency: int):
+    def __init__(self, pattern: NDArray, frequency: int):
         self._pattern = pattern
         self._frequency = frequency
 
@@ -25,7 +26,7 @@ class TileImage:
     def frequency(self) -> int:
         return self._frequency
     @property
-    def image(self) -> np.ndarray:
+    def image(self) -> NDArray:
         return self._pattern
     
     def is_adjacent_to(self, tile: 'TileImage', direction: Direction) -> bool:
@@ -61,11 +62,11 @@ class Cell:
         total = sum(tile.frequency for tile in self._options)
         return np.log2(total) - sum(tile.frequency * np.log2(tile.frequency) for tile in self._options) / total
     @property
-    def image(self) -> Optional[np.ndarray]:
+    def image(self) -> Optional[NDArray]:
         if not len(self._options): return None
         elif self._collapsed: return self._options[0].image
         else:
-            image = np.ndarray(self._options[0].image.shape)
+            image = NDArray(self._options[0].image.shape)
             image[:] = np.mean(np.mean([tile.image for tile in self._options], axis=0), axis=(0, 1))
             return image.astype('uint8')
     @property
