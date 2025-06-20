@@ -11,6 +11,7 @@ from wfc.cell_image import (
     TileImage
 )
 
+from numpy.typing import NDArray
 from typing import (
     Generator,
     Iterable
@@ -18,7 +19,7 @@ from typing import (
 
 
 @dataclass
-class _CellDataContainer():
+class _CellDataContainer:
     index: int
     cell: Cell
 
@@ -77,7 +78,7 @@ def _wfc(
         patterns: list[TileImage],
         output_dimension: tuple[int, int],
         repeat_until_success: bool
-    ) -> Generator[np.ndarray, None, tuple[bool, np.ndarray]]:
+    ) -> Generator[NDArray, None, tuple[bool, NDArray]]:
     """
     Wave function collapse on a set of tiles. In order to work properly,\
         this set should contain square tiles with the same shape.
@@ -190,9 +191,9 @@ class WFC:
             self._need_update = True
 
     @property
-    def wfc_result(self) -> tuple[bool, np.ndarray]:
+    def wfc_result(self) -> tuple[bool, NDArray]:
         if self._return_val is None:
-            image = np.ndarray(self._patterns[0].image.shape)
+            image = NDArray(self._patterns[0].image.shape)
             image[:] = np.mean(np.mean([tile.image for tile in self._patterns], axis=0), axis=(0, 1))
             return False, image.astype('uint8')
         else:
@@ -204,7 +205,7 @@ class WFC:
         self._return_val = None
         self._need_update = False
 
-    def run(self) -> tuple[bool, np.ndarray]:
+    def run(self) -> tuple[bool, NDArray]:
         if self._need_update: self._init_gen()
         prev_result = self._return_val
         for _ in self: pass
@@ -217,13 +218,13 @@ class WFC:
         return self._return_val
 
     def __iter__(self)\
-        -> Generator[np.ndarray, None, tuple[bool, np.ndarray]]:
+        -> Generator[NDArray, None, tuple[bool, NDArray]]:
         # if self._need_update: self._init_gen()
         # self._return_val = yield from self._generator
         # return self._return_val
         return self
     
-    def __next__(self) -> np.ndarray:
+    def __next__(self) -> NDArray:
         if self._need_update: self._init_gen()
         try:
             return next(self._generator)
