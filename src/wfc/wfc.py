@@ -114,35 +114,31 @@ def _wfc(
 
 class CollapsedError(Exception):
     """
-    Exception thrown when WFC has already collapsed for the curretn configuration
+    Exception thrown when WFC has already collapsed for the current configuration
     """
 
 class WFC:
-    __slots__ = '_generator', '_need_update',\
-                '_output_dim', '_patterns',\
-                '_repeat_til_success', '_rerun',\
-                '_return_val'
-    def __init__(self, output_dimension: tuple[int, int],
-                 patterns: Iterable[TileImage], *,
-                 repeat_until_success: bool = True,
-                 rerun: bool = False):
-        if not isinstance(output_dimension, tuple) or\
-           len(output_dimension) != 2 or\
-           any((not isinstance(i, int)) for i in output_dimension):
-            raise TypeError(f"Expected a tuple of two int: {output_dimension}")
-        elif any((dim < 1) for dim in output_dimension):
-            raise ValueError("Dimension must be larger than 0")
-        if any((not isinstance(tile, TileImage) for tile in patterns)):
-            raise TypeError("Expected an Iterable of TileImage")
-        if not isinstance(repeat_until_success, bool):
-            raise TypeError('repeat_until_success must be a bool')
-        if not isinstance(rerun, bool):
-            raise TypeError('rerun must be a bool')
+    __slots__ = (
+        '_generator',
+        '_need_update',
+        '_output_dim',
+        '_patterns',
+        '_repeat_til_success',
+        '_rerun',
+        '_return_val'
+    )
+    def __init__(self,
+        output_dimension: tuple[int, int],
+        patterns: Iterable[TileImage],
+        *,
+        repeat_until_success: bool = True,
+        rerun: bool = False
+    ):
 
-        self._output_dim = output_dimension
-        self._patterns = list(patterns)
-        self._repeat_til_success = repeat_until_success
-        self._rerun = rerun
+        self.output_dimension = output_dimension
+        self.patterns = patterns
+        self.repeat_until_success = repeat_until_success
+        self.rerun = rerun
         self._need_update = True
         self._return_val = None
 
@@ -151,8 +147,11 @@ class WFC:
         return self._output_dim
     @output_dimension.setter
     def output_dimension(self, new_dim: tuple[int, int]):
-        if not isinstance(new_dim, tuple) or len(new_dim) != 2 or\
-           any((not isinstance(i, int)) for i in new_dim):
+        if (
+            not isinstance(new_dim, tuple) or
+            len(new_dim) != 2 or
+            any((not isinstance(i, int)) for i in new_dim)
+        ):
             raise TypeError(f"Expected a tuple of two int: {new_dim}")
         elif any((dim < 1) for dim in new_dim):
             raise ValueError("Dimension must be larger than 0")
@@ -200,8 +199,11 @@ class WFC:
             return self._return_val
 
     def _init_gen(self):
-        self._generator = _wfc(self._patterns, self._output_dim,
-                               self._repeat_til_success)
+        self._generator = _wfc(
+            self._patterns,
+            self._output_dim,
+            self._repeat_til_success
+        )
         self._return_val = None
         self._need_update = False
 
@@ -217,11 +219,8 @@ class WFC:
             raise CollapsedError(err_msg)
         return self._return_val
 
-    def __iter__(self)\
-        -> Generator[NDArray, None, tuple[bool, NDArray]]:
-        # if self._need_update: self._init_gen()
-        # self._return_val = yield from self._generator
-        # return self._return_val
+    def __iter__(self
+    ) -> Generator[NDArray, None, tuple[bool, NDArray]]:
         return self
     
     def __next__(self) -> NDArray:
