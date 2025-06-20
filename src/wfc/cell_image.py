@@ -16,15 +16,22 @@ class Direction(Enum):
     LEFT = 'left'
     RIGHT = 'right'
 
+
 class TileImage:
     __slots__ = '_pattern', '_frequency'
     def __init__(self, pattern: NDArray, frequency: int):
+        if not isinstance(frequency, int):
+            raise TypeError("frequency must be a positive integer...")
+        elif frequency <= 0:
+            raise ValueError("frequency must be a positive integer...")
+
         self._pattern = pattern
         self._frequency = frequency
 
     @property
     def frequency(self) -> int:
         return self._frequency
+
     @property
     def image(self) -> NDArray:
         return self._pattern
@@ -44,6 +51,7 @@ class TileImage:
         else:
             raise ValueError("Weird direction passed")
         return result
+
 
 class Cell:
     """
