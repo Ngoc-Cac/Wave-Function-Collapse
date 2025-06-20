@@ -47,15 +47,45 @@ class TileImage:
         return result
 
 class Cell:
+    """
+    An uncollapse cell within a grid. A cell comprises of
+    multiple states from a list of predefined `TileImage`.
+    """
     __slots__ = '_collapsed', '_options'
     def __init__(self, patterns: Iterable[TileImage]):
+        """
+        Initialize an uncollapse cells from a list of `TileImage`.
+
+        :param Iterable[TileImage] patterns: A list of predefined tiles.
+            Each tile carries along an information on what other tiles it
+            can be adjacent to.
+        """
         self._options = list(patterns)
         self._collapsed = False
 
+        if not len(self._options):
+            raise ValueError('patterns is empty...')
+
     @property
     def entropy(self) -> float:
-        """
-        entropy = log(total_count) - sigma weight_i * log(weight_i)
+        r"""
+        Calculate the entropy of the current cell.
+        When all tiles of a cell have the same probability of collapsing,
+        uncollapsed cells with more states have higher entropy than those
+        with less states. For cells that have been collapsed, its entropy is 0.
+
+        For details, the entropy is calculated using the Shannon-entropy formula:
+
+        .. math::
+
+            \text{entropy} = \log_2(\sum_{i=0}^{n-1}\text{freq}_i)
+                - \sum_{i=0}^{n-1}\text{freq}_i\log_2(\text{freq}_i)
+        
+        where :math:`n` is the number of possible states for a cell and
+        :math:`\text{freq}_i` is the frequency of the *i*-th state.
+
+        :return: The entropy duh.
+        :rtype: float
         """
         if not len(self._options): return np.inf
 
@@ -63,18 +93,49 @@ class Cell:
         return np.log2(total) - sum(tile.frequency * np.log2(tile.frequency) for tile in self._options) / total
     @property
     def image(self) -> Optional[NDArray]:
+        """
+        Image representation of the current cell. In the case
+        the cell has collapsed, this is the image of the tile it has
+        collapsed to. In the case the cell is uncollapsed, this will be
+        a image where the pixel values are averaged across all states.
+
+        Note: Invalid cell will not have an image representation
+        """
         if not len(self._options): return None
         elif self._collapsed: return self._options[0].image
         else:
             image = NDArray(self._options[0].image.shape)
             image[:] = np.mean(np.mean([tile.image for tile in self._options], axis=0), axis=(0, 1))
             return image.astype('uint8')
+    
     @property
     def is_collapsed(self) -> bool: return self._collapsed
+    
     @property
-    def is_valid(self) -> bool: return bool(len(self._options))
+    def is_valid(self) -> bool:
+        """
+        Whether or not this is a valid cell. All cells start out as valid
+        (having states to collapse) and may end up being invalid (having
+        no state to collapse to) because of the constraints enforce by
+        adjacent cells.
+        """
+        return bool(len(self._options))
 
-    def update_options(self, cell_image: 'Cell', direction: Direction) -> bool:
+    def update_options(self,
+        cell_image: 'Cell',
+        direction: Direction
+    ) -> bool:
+        """
+        Update the options for a cell based on adjacent cells. This will
+        essentially remove options that can not be adjacent to the given
+        cell.
+
+        :param Cell cell_image: The adjacent cell.
+        :param Direction direction: The direction of the `cell_image`
+            relative to this cell.
+
+        :return bool: Whether or not the options has changed after updating.
+        """
         new_options = []
         for option in self._options:
             for other_opt in cell_image._options:
@@ -88,6 +149,10 @@ class Cell:
         return updated
 
     def collapse(self):
+        """
+        Collapse the current cell. This will randomly pick an option
+        from the available options.
+        """
         counts = [tile.frequency for tile in self._options]
         self._options = rand.sample(self._options, 1, counts=counts)
         self._collapsed = True
