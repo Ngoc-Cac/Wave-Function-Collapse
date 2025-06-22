@@ -7,7 +7,7 @@ from .cell_image import (
     Direction,
     TileImage
 )
-from .PriorityQueue import PriorityQueue
+from .priority_queue import PriorityQueue
 from .utils import concat_grid
 
 
