@@ -150,8 +150,8 @@ class Cell:
         if self._collapsed: return self._options[0].image
         else:
             image = np.array([tile.image for tile in self._options])
-            # image = image.mean(axis=0)
-            image[:] = image.mean(axis=0).mean(axis=(0, 1))
+            image = image.mean(axis=0)
+            image = np.ones(image.shape[1:]) * image.mean(axis=(0, 1))
             return image.astype('uint8')
     
     @property
