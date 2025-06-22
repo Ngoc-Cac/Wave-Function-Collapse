@@ -1,8 +1,7 @@
 import random as rand
+import numpy as np
 
 from enum import Enum
-
-import numpy as np
 
 from numpy.typing import NDArray
 from typing import (
@@ -97,11 +96,14 @@ class Cell:
             Each tile carries along an information on what other tiles it
             can be adjacent to.
         """
+        if any((not isinstance(tile, TileImage) for tile in patterns)):
+            raise TypeError('patterns must be a collection of TileImage')
         self._options = list(patterns)
-        self._collapsed = False
 
         if not len(self._options):
             raise ValueError('patterns is empty...')
+        
+        self._collapsed = False
 
     @property
     def entropy(self) -> float:
