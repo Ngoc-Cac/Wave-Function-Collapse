@@ -1,7 +1,7 @@
 import numpy as np
 
 
-from .algos import _wfc
+from ._algos import _wfc
 from .cell_image import TileImage
 
 
