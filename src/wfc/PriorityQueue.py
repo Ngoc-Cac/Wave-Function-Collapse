@@ -110,9 +110,10 @@ class PriorityQueue(Generic[T]):
             is returned.
         :raise AttributeError: If attr does not exist.
         """
-        if item in self._items_list:
-            return getattr(self._items_list[item][0], attr)
-        else: return default_value
+        return (
+            getattr(self._items_list[item][0], attr)
+            if item in self._items_list else default_value
+        )
 
 
     def __len__(self) -> int: return len(self._items_list)
