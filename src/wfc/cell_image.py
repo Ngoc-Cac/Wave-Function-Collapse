@@ -30,15 +30,45 @@ class TileImage:
 
     @property
     def frequency(self) -> int:
+        """
+        The number of times this tile will appear in the given set.
+        The more frequent a tile is, the higher the probability a cell will
+        collapsed to this tile.
+
+        For example, given a set of two tiles A and B where A has frequency 2
+        and B has frequency 3. The probability of a cell collapsing to tile A
+        will be 2/5. Similarly, the probability of collapsing to tile B is 3/5.
+        """
         return self._frequency
 
     @property
     def image(self) -> NDArray:
+        """
+        Image representation of the tile.
+        """
         return self._pattern
     
     def is_adjacent_to(self, tile: 'TileImage', direction: Direction) -> bool:
         """
-        Can this tile be adjacent in the `direction` to `tile`
+        Check whether or not the current cell can be adjacent to the given
+        tile in the position given by `direction`. By default, this will check whether
+        or not two tiles share the same boundary (same pixel values across the boundary).
+
+        For example, consider two TileImage `t1` and `t2`. In all cases, `t1`
+        cannot be above `t2` (the bottom row of pixels in `t1` does not match
+        the top row of pixels in `t2`). Then:
+        ```python
+        >>> t1.is_adjacent_to(t2, Direction.UP)
+        False
+        >>> t1.is_adjacent_to(t2, Direction.LEFT)
+        True
+        ```
+
+        :param TileImage tile: The adjacent tile.
+        :param Direction direction: The position of the current tile relative
+            to the adjacent tile.
+        :return: Whether or not the current cell can be adjacent to the given cell.
+        :rtype: bool
         """
         if direction == Direction.UP:
             result = (self._pattern[-1] == tile._pattern[0]).all()
@@ -111,7 +141,8 @@ class Cell:
         collapsed to. In the case the cell is uncollapsed, this will be
         a image where the pixel values are averaged across all states.
 
-        Note: Invalid cell will not have an image representation
+        Note: Invalid cell will not have an image representation, in which
+        case, `None` is returned.
         """
         if not len(self._options): return None
         if self._collapsed: return self._options[0].image
