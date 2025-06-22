@@ -3,13 +3,13 @@ import numpy as np
 
 from dataclasses import dataclass
 
-from utilities.PriorityQueue import PriorityQueue
-from utilities.utils import concat_grid
-from wfc.cell_image import (
+from .cell_image import (
     Cell,
     Direction,
     TileImage
 )
+from .PriorityQueue import PriorityQueue
+from .utils import concat_grid
 
 from numpy.typing import NDArray
 from typing import (
@@ -80,16 +80,15 @@ def _wfc(
         repeat_until_success: bool
     ) -> Generator[NDArray, None, tuple[bool, NDArray]]:
     """
-    Wave function collapse on a set of tiles. In order to work properly,\
-        this set should contain square tiles with the same shape.
+    Wave function collapse on a set of tiles. In order to work properly,
+    this set should contain square tiles with the same shape.
 
-    ## Parameters
     """
     intermediate_result = lambda: concat_grid(matrix, patterns[0].image.shape, output_dimension)
     success = False
     
     while not success:
-        matrix: list[Cell] = [Cell(patterns) for _ in range(output_dimension[0] * output_dimension[1])]
+        matrix = [Cell(patterns) for _ in range(output_dimension[0] * output_dimension[1])]
         min_index = rand.randint(0, output_dimension[0] * output_dimension[1] - 1)
         matrix[min_index].collapse()
         non_collapsed = PriorityQueue((_CellDataContainer(i, cell) for i, cell in enumerate(matrix)
@@ -132,18 +131,24 @@ class WFC:
         patterns: Iterable[TileImage],
         *,
         repeat_until_success: bool = True,
-        rerun: bool = False
+        rerun: bool = True
     ):
+        self._need_update = True
+        self._return_val = None
 
         self.output_dimension = output_dimension
         self.patterns = patterns
         self.repeat_until_success = repeat_until_success
         self.rerun = rerun
-        self._need_update = True
-        self._return_val = None
 
     @property
     def output_dimension(self) -> tuple[int, int]:
+        """
+        The dimension (in tiles) of the output grid. For example,
+        the dimension (2, 2) will output a grid of 2 tiles wide
+        and 2 tiles high. The dimension in pixels depends on the image
+        representation of the tiles.
+        """
         return self._output_dim
     @output_dimension.setter
     def output_dimension(self, new_dim: tuple[int, int]):
@@ -160,6 +165,9 @@ class WFC:
 
     @property
     def patterns(self) -> Iterable[TileImage]:
+        """
+        The current set of tiles to do wave function collapse on.
+        """
         return iter(self._patterns)
     @patterns.setter
     def patterns(self, new_patterns: Iterable[TileImage]):
@@ -170,16 +178,30 @@ class WFC:
 
     @property
     def repeat_until_success(self) -> bool:
+        """
+        Whether to do wave function collapse until all cells are
+        collapsed. During a collapse, if a cell becomes invalid, the
+        algoirthm will reset to a new grid and run again.
+        """
         return self._repeat_til_success
     @repeat_until_success.setter
     def repeat_until_success(self, value: bool):
         if not isinstance(value, bool):
             raise TypeError('repeat value must be a bool')
-        self._repeat_til_success = True
+        self._repeat_til_success = value
         self._need_update = True
 
     @property
     def rerun(self) -> bool:
+        """
+        Whether or not to rerun the wave function collapse algorithm
+        once the current state has been collapsed. This is different
+        to `repeat_until_success` in the sense that the algorithm is not run
+        again if the all cells have been collapsed to preserve the result.
+
+        If `rerun` is True, calling `run()` will run the algorithm again and
+        overwrite the wfc_result in the previous run.
+        """
         return self._rerun
     @rerun.setter
     def rerun(self, value: bool):
@@ -191,6 +213,17 @@ class WFC:
 
     @property
     def wfc_result(self) -> tuple[bool, NDArray]:
+        """
+        The result of the wave function collapse. If the current grid has
+        been collapsed, this will return the collapsed result. Otherwise,
+        this will return a grid of cells where each cell is represented by a
+        superposition of all available states.
+
+        :return: A tuple of bool and numpy.NDArray. The bool represents whether
+            or not all cells have been collapsed. The numpy.NDArray is the image
+            representation of the grid.
+        :rtype: tuple[bool, numpy.NDArray]
+        """
         if self._return_val is None:
             image = NDArray(self._patterns[0].image.shape)
             image[:] = np.mean(np.mean([tile.image for tile in self._patterns], axis=0), axis=(0, 1))
@@ -198,7 +231,11 @@ class WFC:
         else:
             return self._return_val
 
+
     def _init_gen(self):
+        """
+        Initialize a wave function collapse generator.
+        """
         self._generator = _wfc(
             self._patterns,
             self._output_dim,
@@ -207,17 +244,36 @@ class WFC:
         self._return_val = None
         self._need_update = False
 
+
     def run(self) -> tuple[bool, NDArray]:
+        """
+        Run the wave function collapse algorithm on the current configuration.
+        Internally, this will just iterate over the current object to get the final
+        result.
+        
+        If `rerun` is False and all cells have been collapsed. This will raise a
+        CollapsedError to avoid overwriting the current result.
+
+        :return: A tuple of bool and numpy.NDArray. The bool represents whether
+            or not all cells have been collapsed. The numpy.NDArray is the image
+            representation of the grid.
+        :rtype: tuple[bool, numpy.NDArray]
+        """
         if self._need_update: self._init_gen()
         prev_result = self._return_val
         for _ in self: pass
         
         if self._return_val is None:
             self._return_val = prev_result
-            err_msg = "The current configuration for Wave Function Collapse has already" +\
-                      " been collapsed. Consider setting rerun = True to rerun."
+            err_msg = (
+                "The current configuration for Wave Function Collapse has already"
+                " been collapsed. Consider setting rerun = True to rerun. If you"
+                " want to just get the previous result of the WFC, use 'wfc_result'"
+                " attribute instead."
+            )
             raise CollapsedError(err_msg)
         return self._return_val
+
 
     def __iter__(self
     ) -> Generator[NDArray, None, tuple[bool, NDArray]]:
