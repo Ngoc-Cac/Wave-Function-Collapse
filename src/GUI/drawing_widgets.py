@@ -13,8 +13,8 @@ from PyQt6.QtCore import (
     pyqtSlot
 )
 
+from wfc.utils import show_tiles
 from wfc.wfc import WFC
-from utilities.utils import show_tiles
 
 from typing import TypeAlias
 

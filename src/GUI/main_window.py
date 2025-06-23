@@ -12,9 +12,8 @@ from GUI.drawing_widgets import Animator
 from GUI.home import Home
 from GUI.image_choser import ImageLoader
 
-from utilities.utils import load_patterns
-
 from wfc.cell_image import TileImage
+from wfc.utils import load_patterns
 from wfc.wfc import WFC
 
 from typing import Literal

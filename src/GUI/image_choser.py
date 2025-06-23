@@ -21,8 +21,8 @@ from PyQt6.QtWidgets import (
 
 from GUI import _ROOT_DIR
 from GUI.drawing_widgets import MplCanvas
-from utilities.utils import load_patterns, generate_patterns
 from wfc.cell_image import TileImage
+from wfc.utils import load_patterns, generate_patterns
 
 from typing import Literal
 
