@@ -1,9 +1,9 @@
 import os
 
-import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 
+from PIL import Image
 from matplotlib.axes import Axes
 from scipy.ndimage import rotate
 
@@ -13,6 +13,7 @@ from .cell_image import (
     Cell
 )
 
+from numpy.typing import NDArray
 from typing import (
     Iterable,
     Literal,
@@ -20,7 +21,7 @@ from typing import (
 )
 
 
-def _augment_by_rotation(patterns: list[np.ndarray]) -> list[np.ndarray]:
+def _augment_by_rotation(patterns: list[NDArray]) -> list[NDArray]:
     rotated_patterns = []
     for pattern in patterns:
         ninety = rotate(pattern, 90)
@@ -36,22 +37,21 @@ def _augment_by_rotation(patterns: list[np.ndarray]) -> list[np.ndarray]:
             rotated_patterns.append(twensev)
     return rotated_patterns
 
-def concat_grid(tiles_grid: list[Cell],
-                tiles_shape: tuple[int, int, Literal[3]],
-                dimension: tuple[int, int]) -> np.ndarray:
+def concat_grid(
+    tiles_grid: list[Cell],
+    tiles_shape: tuple[int, int, Literal[3]],
+    dimension: tuple[int, int]
+) -> NDArray:
     """
     Concatenate a grid of Cell objects into a single image.
 
-    This asumes that every Cell has a superposition state, else its\
-        image representation will be filled with black.
+    This asumes that every Cell has a superposition state, else its
+    image representation will be filled with black.
 
-    ## Parameters:
-        tiles_grid: list of Cell objects to concatenate
-        tiles_shape: the dimension of a Cell
-        dimension: dimension of the final image after concatenation
-
-    ## Return
-    A `numpy.ndarray` of shape `(int, int, 3)`
+    :param list[Cell] tiles_grid: List of Cell objects to concatenate.
+    :param tuple[int, int, Literal[3]] tiles_shape: The dimension of a Cell.
+    :param tuple[int, int] dimension: Dimension of the output image.
+    :return `numpy.NDArray`: An RGB image as a numpy array.
     """
     failure_cell = np.zeros(tiles_shape, dtype='uint8')
     row_pixels = []
@@ -62,15 +62,23 @@ def concat_grid(tiles_grid: list[Cell],
         row_pixels.append(temp)
     return np.concatenate(row_pixels)
 
-def show_tiles(images: Iterable[np.ndarray], *,
-               ax: Optional[Axes] = None)\
-    -> Axes:
+def show_tiles(
+    images: Iterable[NDArray], *,
+    ax: Optional[Axes] = None
+) -> Axes:
+    """
+    Show a list of tiles in a grid pattern.
+
+    :param Iterable[NDArray] images: List of tiles as RGB images.
+    :param matplotlib.axes.Axes, optional ax: Axes to draw on. This is
+        `None` by default, which will draw on the default Axes instead.
+    :return matplotlib.axes.Axes: The axes that was drawn on.
+    """
     rows = int(np.sqrt(len(images)))
     cols = int(np.ceil(len(images) / rows))
     n_pix = list(images)[0].shape[0]
 
-    grid = np.ndarray((n_pix * rows + rows - 1, n_pix * cols + cols - 1, 3), dtype='uint8')
-    grid.fill(255)
+    grid = 255 * np.ones((n_pix * rows + rows - 1, n_pix * cols + cols - 1, 3), dtype='uint8')
     
     for i, image in enumerate(images):
         col = i % cols
@@ -84,29 +92,46 @@ def show_tiles(images: Iterable[np.ndarray], *,
     return ax
 
 
-def load_patterns(directory: str, rotate: bool = True)\
-    -> list[np.ndarray]:
+def load_patterns(
+    directory: str,
+    rotate: bool = True
+) -> list[NDArray]:
     """
-    Load a list of numpy.ndarray representing the tiles and its rotated version.
-    
+    Load a list of numpy.NDArray representing the tiles and its rotated version.
     A directory containing the png images of the tile should be given.
 
-    ## Parameters:
-        directory: a directory containing png's representing tiles.
+    :param str directory: Path to directory containing the images of the tiles.
+    :param bool, optional rotate: Where or not to augment the images by rotation.
+        This is `True` by default.
+    :return list[NDArray]: A list of images.
     """
     patterns = []
     for path in os.listdir(directory):
         if path[-3:] == 'png':
-            patterns.append(cv2.cvtColor(cv2.imread(os.path.join(directory, path)),
-                                         cv2.COLOR_BGR2RGB))
+            patterns.append(np.array(
+                Image.open(os.path.join(directory, path))
+                     .convert('RGB')
+            ))
     if rotate: patterns.extend(_augment_by_rotation(patterns))
     return patterns
 
-def generate_patterns(image_filepath: str,
-                      n_pixels: int = 3,
-                      rotate: bool = False)\
-    -> list[TileImage]:
-    image = cv2.cvtColor(cv2.imread(image_filepath), cv2.COLOR_BGR2RGB)
+def generate_patterns(
+    image_filepath: str,
+    n_pixels: int = 3,
+    rotate: bool = False
+) -> list[TileImage]:
+    """
+    Generate a list of tiles from a given image based on the overlapping model.
+
+    :param str image_filepath: Path to image.
+    :param int, optional n_pixels: Dimension of tiles in pixels. This is `3` by
+        default.
+    :param bool, optional rotate: Whether or not to augment the tiles by rotation.
+        This is `False` by default.
+    
+    :return list[TileImage]: The generated tiles.
+    """
+    image = np.array(Image.open(image_filepath).convert('RGB'))
 
     unique_patterns = {}
     for i in range(image.shape[0]):
@@ -128,7 +153,7 @@ def generate_patterns(image_filepath: str,
 
 class _OverlappingModel_TileImage(TileImage):
     @TileImage.image.getter
-    def image(self) -> np.ndarray:
+    def image(self) -> NDArray:
         image = np.ndarray((1, 1, 3), dtype='uint8')
         image[0, 0] = self._pattern[0, 0]
         return image
